@@ -13235,7 +13235,7 @@ static inline void walt_check_for_rotation(struct rq *rq)
 static DEFINE_RAW_SPINLOCK(migration_lock);
 void check_for_migration(struct rq *rq, struct task_struct *p)
 {
-	int active_balance;
+	int active_balance, ret;
 	int new_cpu = -1;
 	int cpu = smp_processor_id();
 	int prev_cpu = task_cpu(p);
