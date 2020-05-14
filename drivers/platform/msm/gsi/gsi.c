@@ -565,7 +565,6 @@ static void gsi_process_chan(struct gsi_xfer_compl_evt *evt,
 	if (callback) {
 		if (atomic_read(&ch_ctx->poll_mode)) {
 			GSIERR("Calling client callback in polling mode\n");
-			WARN_ON(1);
 		}
 		ch_ctx->props.xfer_cb(notify);
 	}
@@ -1004,6 +1003,29 @@ int gsi_unmap_base(void)
 	return 0;
 }
 EXPORT_SYMBOL(gsi_unmap_base);
+
+int gsi_is_mcs_enabled(void)
+{
+	uint32_t mcs_enable = 0;
+
+	if (!gsi_ctx) {
+		pr_err("%s:%d gsi context not allocated\n", __func__, __LINE__);
+		return GSI_STATUS_NODEV;
+	}
+
+	if (!gsi_ctx->base) {
+		GSIERR("GSI base is not mapped\n");
+		return -GSI_STATUS_NODEV;
+	}
+
+	mcs_enable = gsi_readl(gsi_ctx->base + GSI_GSI_MCS_CFG_OFFS);
+
+	pr_info("%s:%d MCS enabled:%x\n", __func__, __LINE__, mcs_enable);
+
+	return (mcs_enable & GSI_GSI_MCS_CFG_MCS_ENABLE_BMSK);
+}
+EXPORT_SYMBOL(gsi_is_mcs_enabled);
+
 
 int gsi_register_device(struct gsi_per_props *props, unsigned long *dev_hdl)
 {
@@ -1715,7 +1737,7 @@ int gsi_alloc_evt_ring(struct gsi_evt_ring_props *props, unsigned long dev_hdl,
 EXPORT_SYMBOL(gsi_alloc_evt_ring);
 
 static void __gsi_write_evt_ring_scratch(unsigned long evt_ring_hdl,
-		union __packed gsi_evt_scratch val)
+		union gsi_evt_scratch val)
 {
 	gsi_writel(val.data.word1, gsi_ctx->base +
 		GSI_EE_n_EV_CH_k_SCRATCH_0_OFFS(evt_ring_hdl,
@@ -1726,7 +1748,7 @@ static void __gsi_write_evt_ring_scratch(unsigned long evt_ring_hdl,
 }
 
 int gsi_write_evt_ring_scratch(unsigned long evt_ring_hdl,
-		union __packed gsi_evt_scratch val)
+		union gsi_evt_scratch val)
 {
 	struct gsi_evt_ctx *ctx;
 
@@ -2472,7 +2494,7 @@ static int gsi_alloc_ap_channel(unsigned int chan_hdl)
 }
 
 static void __gsi_write_channel_scratch(unsigned long chan_hdl,
-		union __packed gsi_channel_scratch val)
+		union gsi_channel_scratch val)
 {
 	gsi_writel(val.data.word1, gsi_ctx->base +
 		GSI_EE_n_GSI_CH_k_SCRATCH_0_OFFS(chan_hdl,
@@ -2490,7 +2512,7 @@ static void __gsi_write_channel_scratch(unsigned long chan_hdl,
 }
 
 static void __gsi_write_wdi3_channel_scratch2_reg(unsigned long chan_hdl,
-		union __packed gsi_wdi3_channel_scratch2_reg val)
+		union gsi_wdi3_channel_scratch2_reg val)
 {
 	gsi_writel(val.data.word1, gsi_ctx->base +
 		GSI_EE_n_GSI_CH_k_SCRATCH_2_OFFS(chan_hdl,
@@ -2499,7 +2521,7 @@ static void __gsi_write_wdi3_channel_scratch2_reg(unsigned long chan_hdl,
 
 
 int gsi_write_channel_scratch3_reg(unsigned long chan_hdl,
-		union __packed gsi_wdi_channel_scratch3_reg val)
+		union gsi_wdi_channel_scratch3_reg val)
 {
 	struct gsi_chan_ctx *ctx;
 
@@ -2530,7 +2552,7 @@ int gsi_write_channel_scratch3_reg(unsigned long chan_hdl,
 EXPORT_SYMBOL(gsi_write_channel_scratch3_reg);
 
 static void __gsi_read_channel_scratch(unsigned long chan_hdl,
-		union __packed gsi_channel_scratch * val)
+		union gsi_channel_scratch *val)
 {
 	val->data.word1 = gsi_readl(gsi_ctx->base +
 		GSI_EE_n_GSI_CH_k_SCRATCH_0_OFFS(chan_hdl,
@@ -2550,7 +2572,7 @@ static void __gsi_read_channel_scratch(unsigned long chan_hdl,
 }
 
 static void __gsi_read_wdi3_channel_scratch2_reg(unsigned long chan_hdl,
-		union __packed gsi_wdi3_channel_scratch2_reg * val)
+		union gsi_wdi3_channel_scratch2_reg * val)
 {
 
 	val->data.word1 = gsi_readl(gsi_ctx->base +
@@ -2560,10 +2582,10 @@ static void __gsi_read_wdi3_channel_scratch2_reg(unsigned long chan_hdl,
 }
 
 
-static union __packed gsi_channel_scratch __gsi_update_mhi_channel_scratch(
-	unsigned long chan_hdl, struct __packed gsi_mhi_channel_scratch mscr)
+static union gsi_channel_scratch __gsi_update_mhi_channel_scratch(
+	unsigned long chan_hdl, struct gsi_mhi_channel_scratch mscr)
 {
-	union __packed gsi_channel_scratch scr;
+	union gsi_channel_scratch scr;
 
 	/* below sequence is not atomic. assumption is sequencer specific fields
 	 * will remain unchanged across this sequence
@@ -2620,7 +2642,7 @@ static union __packed gsi_channel_scratch __gsi_update_mhi_channel_scratch(
 }
 
 int gsi_write_channel_scratch(unsigned long chan_hdl,
-		union __packed gsi_channel_scratch val)
+		union gsi_channel_scratch val)
 {
 	struct gsi_chan_ctx *ctx;
 
@@ -2653,7 +2675,7 @@ int gsi_write_channel_scratch(unsigned long chan_hdl,
 EXPORT_SYMBOL(gsi_write_channel_scratch);
 
 int gsi_write_wdi3_channel_scratch2_reg(unsigned long chan_hdl,
-		union __packed gsi_wdi3_channel_scratch2_reg val)
+		union gsi_wdi3_channel_scratch2_reg val)
 {
 	struct gsi_chan_ctx *ctx;
 
@@ -2688,7 +2710,7 @@ EXPORT_SYMBOL(gsi_write_wdi3_channel_scratch2_reg);
 
 
 int gsi_read_channel_scratch(unsigned long chan_hdl,
-		union __packed gsi_channel_scratch *val)
+		union gsi_channel_scratch *val)
 {
 	struct gsi_chan_ctx *ctx;
 
@@ -2721,7 +2743,7 @@ int gsi_read_channel_scratch(unsigned long chan_hdl,
 EXPORT_SYMBOL(gsi_read_channel_scratch);
 
 int gsi_read_wdi3_channel_scratch2_reg(unsigned long chan_hdl,
-		union __packed gsi_wdi3_channel_scratch2_reg * val)
+		union gsi_wdi3_channel_scratch2_reg * val)
 {
 	struct gsi_chan_ctx *ctx;
 
@@ -2755,7 +2777,7 @@ EXPORT_SYMBOL(gsi_read_wdi3_channel_scratch2_reg);
 
 
 int gsi_update_mhi_channel_scratch(unsigned long chan_hdl,
-		struct __packed gsi_mhi_channel_scratch mscr)
+		struct gsi_mhi_channel_scratch mscr)
 {
 	struct gsi_chan_ctx *ctx;
 
@@ -2962,7 +2984,7 @@ int gsi_stop_channel(unsigned long chan_hdl)
 	}
 
 	if (ctx->state == GSI_CHAN_STATE_STOP_IN_PROC) {
-		GSIERR("chan=%lu busy try again\n", chan_hdl);
+		GSIDBG("chan=%lu busy try again\n", chan_hdl);
 		res = -GSI_STATUS_AGAIN;
 		goto free_lock;
 	}
@@ -3031,7 +3053,7 @@ int gsi_stop_db_channel(unsigned long chan_hdl)
 	}
 
 	if (ctx->state == GSI_CHAN_STATE_STOP_IN_PROC) {
-		GSIERR("chan=%lu busy try again\n", chan_hdl);
+		GSIDBG("chan=%lu busy try again\n", chan_hdl);
 		res = -GSI_STATUS_AGAIN;
 		goto free_lock;
 	}
@@ -3792,7 +3814,7 @@ int gsi_config_channel_mode(unsigned long chan_hdl, enum gsi_chan_mode mode)
 		curr = GSI_CHAN_MODE_CALLBACK;
 
 	if (mode == curr) {
-		GSIERR("already in requested mode %u chan_hdl=%lu\n",
+		GSIDBG("already in requested mode %u chan_hdl=%lu\n",
 				curr, chan_hdl);
 		return -GSI_STATUS_UNSUPPORTED_OP;
 	}
@@ -3843,7 +3865,7 @@ int gsi_config_channel_mode(unsigned long chan_hdl, enum gsi_chan_mode mode)
 				spin_unlock_irqrestore(
 					&ctx->evtr->ring.slock, flags);
 				ctx->stats.poll_pending_irq++;
-				GSIDBG("In IEOB WA pnd cnt = %d prvmode = %d\n",
+				GSIDBG("In IEOB WA pnd cnt =%lu prvmode = %d\n",
 						ctx->stats.poll_pending_irq,
 						chan_mode);
 				if (chan_mode == GSI_CHAN_MODE_POLL)

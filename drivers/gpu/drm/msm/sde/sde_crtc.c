@@ -68,6 +68,10 @@
 #include <linux/module.h>
 #include <linux/init.h>
 #include <drm/drm_mipi_dsi.h>
+
+#include <linux/cpu_input_boost.h>
+#include <linux/devfreq_boost.h>
+
 extern int msm_drm_notifier_call_chain(unsigned long val, void *v);
 
 #define SDE_PSTATES_MAX (SDE_STAGE_MAX * 4)
@@ -1297,9 +1301,6 @@ static int _sde_crtc_set_crtc_roi(struct drm_crtc *crtc,
 			return -EINVAL;
 		}
 
-		if (!mode_info.roi_caps.enabled)
-			continue;
-
 		sde_conn = to_sde_connector(conn_state->connector);
 		sde_conn_state = to_sde_connector_state(conn_state);
 
@@ -1308,6 +1309,9 @@ static int _sde_crtc_set_crtc_roi(struct drm_crtc *crtc,
 						&sde_conn->property_info,
 						&sde_conn_state->property_state,
 						CONNECTOR_PROP_ROI_V1);
+
+		if (!mode_info.roi_caps.enabled)
+			continue;
 
 		/*
 		 * current driver only supports same connector and crtc size,
@@ -2473,8 +2477,8 @@ int sde_crtc_get_secure_transition_ops(struct drm_crtc *crtc,
 		if (encoder->crtc != crtc)
 			continue;
 
-		post_commit |= sde_encoder_check_mode(encoder,
-						MSM_DISPLAY_CAP_VID_MODE);
+		post_commit |= sde_encoder_check_curr_mode(encoder,
+						MSM_DISPLAY_VIDEO_MODE);
 	}
 
 	SDE_DEBUG("crtc%d: secure_level %d old_valid_fb %d post_commit %d\n",
@@ -3162,6 +3166,8 @@ static void _sde_crtc_clear_dim_layers_v1(struct sde_crtc_state *cstate)
 		memset(&cstate->dim_layer[i], 0, sizeof(cstate->dim_layer[i]));
 
 	cstate->num_dim_layers = 0;
+
+	sde_hw_dim_go_inactive();
 }
 
 /**
@@ -3210,6 +3216,11 @@ static void _sde_crtc_set_dim_layer_v1(struct drm_crtc *crtc,
 	}
 	/* populate from user space */
 	cstate->num_dim_layers = count;
+	if (count == 0) {
+		sde_hw_dim_go_inactive();
+		return;
+	}
+
 	for (i = 0; i < count; i++) {
 		user_cfg = &dim_layer_v1.layer_cfg[i];
 
@@ -3416,6 +3427,7 @@ int bl_to_alpha_dc(int brightness)
 	return alpha;
 }
 
+extern int op_dimlayer_bl_enable;
 int oneplus_get_panel_brightness_to_alpha(void)
 {
 	struct dsi_display *display = get_main_display();
@@ -3424,7 +3436,7 @@ int oneplus_get_panel_brightness_to_alpha(void)
 		return 0;
 	if (oneplus_panel_alpha)
 		return oneplus_panel_alpha;
-    if (display->panel->dim_status)
+    if (!op_dimlayer_bl_enable || display->panel->dim_status)
 		return brightness_to_alpha(display->panel->hbm_backlight);
     else
 	return bl_to_alpha_dc(display->panel->hbm_backlight);
@@ -4241,8 +4253,8 @@ static void sde_crtc_atomic_begin(struct drm_crtc *crtc,
 	_sde_crtc_dest_scaler_setup(crtc);
 
 	/* cancel the idle notify delayed work */
-	if (sde_encoder_check_mode(sde_crtc->mixers[0].encoder,
-					MSM_DISPLAY_CAP_VID_MODE) &&
+	if (sde_encoder_check_curr_mode(sde_crtc->mixers[0].encoder,
+					MSM_DISPLAY_VIDEO_MODE) &&
 		kthread_cancel_delayed_work_sync(&sde_crtc->idle_notify_work))
 		SDE_DEBUG("idle notify work cancelled\n");
 
@@ -4350,8 +4362,8 @@ static void sde_crtc_atomic_flush(struct drm_crtc *crtc,
 	_sde_crtc_wait_for_fences(crtc);
 
 	/* schedule the idle notify delayed work */
-	if (idle_time && sde_encoder_check_mode(sde_crtc->mixers[0].encoder,
-						MSM_DISPLAY_CAP_VID_MODE)) {
+	if (sde_encoder_check_curr_mode(sde_crtc->mixers[0].encoder,
+				MSM_DISPLAY_VIDEO_MODE) && idle_time) {
 		kthread_queue_delayed_work(&event_thread->worker,
 					&sde_crtc->idle_notify_work,
 					msecs_to_jiffies(idle_time));
@@ -5685,8 +5697,8 @@ static int _sde_crtc_check_secure_state(struct drm_crtc *crtc,
 		if (encoder->crtc != crtc)
 			continue;
 
-		is_video_mode |= sde_encoder_check_mode(encoder,
-						MSM_DISPLAY_CAP_VID_MODE);
+		is_video_mode |= sde_encoder_check_curr_mode(encoder,
+						MSM_DISPLAY_VIDEO_MODE);
 	}
 
 	sde_crtc = to_sde_crtc(crtc);
@@ -5727,7 +5739,7 @@ int op_dimlayer_bl_enable_real = 0;
 int op_dimlayer_bl = 0;
 bool finger_type = false;
 //extern int aod_layer_hide;
-extern int op_dimlayer_bl_enable;
+//extern int op_dimlayer_bl_enable;
 extern int op_dp_enable;
 extern int sde_plane_check_fingerprint_layer(const struct drm_plane_state *drm_state);
 static int sde_crtc_onscreenfinger_atomic_check(struct sde_crtc_state *cstate,
@@ -5779,13 +5791,20 @@ static int sde_crtc_onscreenfinger_atomic_check(struct sde_crtc_state *cstate,
 			fppressed_index = i;
 			fppressed_index_rt = i;
 		}
-        if (mode ==3)
-            aod_index = i;
+                if (mode ==3)
+                    aod_index = i;
 	}
+
 	if(fp_index >=0 && dim_mode!=0)
 		display->panel->dim_status = true;
 	else
 		display->panel->dim_status = false;
+
+	if (fppressed_index > 0 || fp_mode == 1) {
+		cpu_input_boost_kick_max(500);
+		devfreq_boost_kick_max(DEVFREQ_MSM_CPUBW, 500);
+		devfreq_boost_kick_max(DEVFREQ_MSM_LLCCBW, 500);
+	}
 
 	if(aod_index <0){
 		oneplus_aod_hid = 0;
@@ -5929,6 +5948,15 @@ static int sde_crtc_onscreenfinger_atomic_check(struct sde_crtc_state *cstate,
 		cstate->fingerprint_dim_layer = NULL;
 	}
 
+        if (fp_mode == 1) {
+                display->panel->dim_status = true;
+                cstate->fingerprint_pressed = true;
+                return 0;
+        } else if (fp_mode == 0) {
+                display->panel->dim_status = false;
+                cstate->fingerprint_pressed = false;
+                return 0;
+        }
 	return 0;
 }
 
@@ -6600,8 +6628,6 @@ static int _sde_crtc_get_output_fence(struct drm_crtc *crtc,
 	uint32_t offset, i;
 	struct drm_connector_state *old_conn_state, *new_conn_state;
 	struct drm_connector *conn;
-	struct sde_connector *sde_conn = NULL;
-	struct msm_display_info disp_info;
 	bool is_vid = false;
 	struct drm_encoder *encoder;
 
@@ -6609,8 +6635,9 @@ static int _sde_crtc_get_output_fence(struct drm_crtc *crtc,
 	cstate = to_sde_crtc_state(state);
 
 	drm_for_each_encoder_mask(encoder, crtc->dev, state->encoder_mask) {
-		is_vid |= sde_encoder_check_mode(encoder,
-						MSM_DISPLAY_CAP_VID_MODE);
+		if (sde_encoder_check_curr_mode(encoder,
+			MSM_DISPLAY_VIDEO_MODE))
+			is_vid = true;
 		if (is_vid)
 			break;
 	}
@@ -6626,15 +6653,11 @@ static int _sde_crtc_get_output_fence(struct drm_crtc *crtc,
 			if (!new_conn_state || new_conn_state->crtc != crtc)
 				continue;
 
-			sde_conn = to_sde_connector(new_conn_state->connector);
-			if (sde_conn->display && sde_conn->ops.get_info) {
-				sde_conn->ops.get_info(conn, &disp_info,
-							sde_conn->display);
-				is_vid |= disp_info.capabilities &
-						MSM_DISPLAY_CAP_VID_MODE;
-				if (is_vid)
-					break;
-			}
+			if (sde_encoder_check_curr_mode(encoder,
+				MSM_DISPLAY_VIDEO_MODE))
+				is_vid = true;
+			if (is_vid)
+				break;
 		}
 	}
 

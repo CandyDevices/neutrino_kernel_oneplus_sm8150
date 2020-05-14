@@ -1,4 +1,4 @@
-/* Copyright (c) 2015-2019, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2015-2020, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -1026,6 +1026,15 @@ struct gsi_chan_info {
 int gsi_register_device(struct gsi_per_props *props, unsigned long *dev_hdl);
 
 /**
+ * gsi_is_mcs_enabled - Peripheral should call this function to
+ * check if MCS is already loaded.
+ *
+ * @Return -GSI_STATUS_NODEV if node is already created.
+ *	   other error codes for failure
+ */
+int gsi_is_mcs_enabled(void);
+
+/**
  * gsi_complete_clk_grant - Peripheral should call this function to
  * grant the clock resource requested by GSI previously that could not
  * be granted synchronously. GSI will release the clock resource using
@@ -1095,7 +1104,7 @@ int gsi_alloc_evt_ring(struct gsi_evt_ring_props *props, unsigned long dev_hdl,
  * @Return gsi_status
  */
 int gsi_write_evt_ring_scratch(unsigned long evt_ring_hdl,
-		union __packed gsi_evt_scratch val);
+		union gsi_evt_scratch val);
 
 /**
  * gsi_dealloc_evt_ring - Peripheral should call this function to
@@ -1222,7 +1231,7 @@ int gsi_alloc_channel(struct gsi_chan_props *props, unsigned long dev_hdl,
  * @Return gsi_status
  */
 int gsi_write_channel_scratch(unsigned long chan_hdl,
-		union __packed gsi_channel_scratch val);
+		union gsi_channel_scratch val);
 
 /**
  * gsi_write_channel_scratch3_reg - Peripheral should call this function to
@@ -1235,7 +1244,7 @@ int gsi_write_channel_scratch(unsigned long chan_hdl,
  * @Return gsi_status
  */
 int gsi_write_channel_scratch3_reg(unsigned long chan_hdl,
-		union __packed gsi_wdi_channel_scratch3_reg val);
+		union gsi_wdi_channel_scratch3_reg val);
 
 /**
  * gsi_write_wdi3_channel_scratch2_reg - Peripheral should call this function
@@ -1248,7 +1257,7 @@ int gsi_write_channel_scratch3_reg(unsigned long chan_hdl,
  * @Return gsi_status
  */
 int gsi_write_wdi3_channel_scratch2_reg(unsigned long chan_hdl,
-		union __packed gsi_wdi3_channel_scratch2_reg val);
+		union gsi_wdi3_channel_scratch2_reg val);
 
 /**
  * gsi_read_channel_scratch - Peripheral should call this function to
@@ -1261,7 +1270,7 @@ int gsi_write_wdi3_channel_scratch2_reg(unsigned long chan_hdl,
  * @Return gsi_status
  */
 int gsi_read_channel_scratch(unsigned long chan_hdl,
-		union __packed gsi_channel_scratch *val);
+		union gsi_channel_scratch *val);
 
 /**
  * gsi_read_wdi3_channel_scratch2_reg - Peripheral should call this function to
@@ -1274,7 +1283,7 @@ int gsi_read_channel_scratch(unsigned long chan_hdl,
  * @Return gsi_status
  */
 int gsi_read_wdi3_channel_scratch2_reg(unsigned long chan_hdl,
-		union __packed gsi_wdi3_channel_scratch2_reg *val);
+		union gsi_wdi3_channel_scratch2_reg *val);
 
 /**
  * gsi_update_mhi_channel_scratch - MHI Peripheral should call this
@@ -1289,7 +1298,7 @@ int gsi_read_wdi3_channel_scratch2_reg(unsigned long chan_hdl,
  * @Return gsi_status
  */
 int gsi_update_mhi_channel_scratch(unsigned long chan_hdl,
-		struct __packed gsi_mhi_channel_scratch mscr);
+		struct gsi_mhi_channel_scratch mscr);
 
 /**
  * gsi_start_channel - Peripheral should call this function to
@@ -1666,6 +1675,11 @@ static inline int gsi_register_device(struct gsi_per_props *props,
 	return -GSI_STATUS_UNSUPPORTED_OP;
 }
 
+static inline int gsi_is_mcs_enabled(void)
+{
+	return -GSI_STATUS_UNSUPPORTED_OP;
+}
+
 static inline int gsi_complete_clk_grant(unsigned long dev_hdl)
 {
 	return -GSI_STATUS_UNSUPPORTED_OP;
@@ -1690,7 +1704,7 @@ static inline int gsi_alloc_evt_ring(struct gsi_evt_ring_props *props,
 }
 
 static inline int gsi_write_evt_ring_scratch(unsigned long evt_ring_hdl,
-		union __packed gsi_evt_scratch val)
+		union gsi_evt_scratch val)
 {
 	return -GSI_STATUS_UNSUPPORTED_OP;
 }
@@ -1730,24 +1744,24 @@ static inline int gsi_alloc_channel(struct gsi_chan_props *props,
 }
 
 static inline int gsi_write_channel_scratch(unsigned long chan_hdl,
-		union __packed gsi_channel_scratch val)
+		union gsi_channel_scratch val)
 {
 	return -GSI_STATUS_UNSUPPORTED_OP;
 }
 static inline int gsi_write_channel_scratch3_reg(unsigned long chan_hdl,
-		union __packed gsi_wdi_channel_scratch3_reg val)
+		union gsi_wdi_channel_scratch3_reg val)
 {
 	return -GSI_STATUS_UNSUPPORTED_OP;
 }
 
 static inline int gsi_read_channel_scratch(unsigned long chan_hdl,
-		union __packed gsi_channel_scratch *val)
+		union gsi_channel_scratch *val)
 {
 	return -GSI_STATUS_UNSUPPORTED_OP;
 }
 
 static inline int gsi_update_mhi_channel_scratch(unsigned long chan_hdl,
-		struct __packed gsi_mhi_channel_scratch mscr)
+		struct gsi_mhi_channel_scratch mscr)
 {
 	return -GSI_STATUS_UNSUPPORTED_OP;
 }

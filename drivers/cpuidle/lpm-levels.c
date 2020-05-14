@@ -495,7 +495,7 @@ static uint64_t lpm_cpuidle_predict(struct cpuidle_device *dev,
 		history->hinvalid = 0;
 		history->htmr_wkup = 1;
 		history->stime = 0;
-		return 0;
+		return 1;
 	}
 
 	/*
@@ -674,7 +674,7 @@ static int cpu_power_select(struct cpuidle_device *dev,
 		min_residency = pwr_params->min_residency;
 		max_residency = pwr_params->max_residency;
 
-		if (latency_us < lvl_latency_us)
+		if (latency_us <= lvl_latency_us)
 			break;
 
 		if (next_event_us) {
@@ -693,9 +693,10 @@ static int cpu_power_select(struct cpuidle_device *dev,
 			 * call prediction.
 			 */
 			if (next_wakeup_us > max_residency) {
-				predicted = lpm_cpuidle_predict(dev, cpu,
-					&idx_restrict, &idx_restrict_time,
-					&ipi_predicted);
+				predicted = (lpm_cpuidle_predict(dev, cpu,
+					&idx_restrict,
+					&idx_restrict_time, &ipi_predicted) == 1) ? 0 :
+						(max_residency >> 1);
 				if (predicted && (predicted < min_residency))
 					predicted = min_residency;
 			} else
@@ -1017,7 +1018,7 @@ static int cluster_select(struct lpm_cluster *cluster, bool from_idle,
 					&level->num_cpu_votes))
 			continue;
 
-		if (from_idle && latency_us < pwr_params->exit_latency)
+		if (from_idle && latency_us <= pwr_params->exit_latency)
 			break;
 
 		if (sleep_us < (pwr_params->exit_latency +

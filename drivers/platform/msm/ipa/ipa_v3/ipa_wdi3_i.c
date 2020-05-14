@@ -1,4 +1,4 @@
-/* Copyright (c) 2018-2019, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2019-2020, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -75,8 +75,8 @@ static int ipa3_setup_wdi3_gsi_channel(u8 is_smmu_enabled,
 {
 	struct gsi_evt_ring_props gsi_evt_ring_props;
 	struct gsi_chan_props gsi_channel_props;
-	union __packed gsi_channel_scratch ch_scratch;
-	union __packed gsi_evt_scratch evt_scratch;
+	union gsi_channel_scratch ch_scratch;
+	union gsi_evt_scratch evt_scratch;
 	const struct ipa_gsi_ep_config *gsi_ep_info;
 	int result, len;
 	unsigned long va;
@@ -677,6 +677,7 @@ int ipa3_disconn_wdi3_pipes(int ipa_ep_idx_tx, int ipa_ep_idx_rx)
 		IPAERR("failed to release gsi channel: %d\n", result);
 		goto exit;
 	}
+	ipa3_release_wdi3_gsi_smmu_mappings(IPA_WDI3_TX_DIR);
 
 	memset(ep_tx, 0, sizeof(struct ipa3_ep_context));
 	IPADBG("tx client (ep: %d) disconnected\n", ipa_ep_idx_tx);
@@ -697,6 +698,7 @@ int ipa3_disconn_wdi3_pipes(int ipa_ep_idx_tx, int ipa_ep_idx_rx)
 		IPAERR("failed to release gsi channel: %d\n", result);
 		goto exit;
 	}
+	ipa3_release_wdi3_gsi_smmu_mappings(IPA_WDI3_RX_DIR);
 
 	if (ipa3_ctx->ipa_hw_type >= IPA_HW_v4_5 ||
 		(ipa3_ctx->ipa_hw_type == IPA_HW_v4_1 &&
@@ -887,7 +889,7 @@ int ipa3_write_qmapid_wdi3_gsi_pipe(u32 clnt_hdl, u8 qmap_id)
 {
 	int result = 0;
 	struct ipa3_ep_context *ep;
-	union __packed gsi_wdi3_channel_scratch2_reg scratch2_reg;
+	union gsi_wdi3_channel_scratch2_reg scratch2_reg;
 
 	memset(&scratch2_reg, 0, sizeof(scratch2_reg));
 	if (clnt_hdl >= ipa3_ctx->ipa_num_pipes ||

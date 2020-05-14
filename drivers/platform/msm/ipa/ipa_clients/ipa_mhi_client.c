@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, 2017-2019 The Linux Foundation. All rights reserved.
+/* Copyright (c) 2015, 2017-2020 The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -63,8 +63,8 @@
 #define IPA_MHI_SUSPEND_SLEEP_MIN 900
 #define IPA_MHI_SUSPEND_SLEEP_MAX 1100
 
-#define IPA_MHI_MAX_UL_CHANNELS 1
-#define IPA_MHI_MAX_DL_CHANNELS 2
+#define IPA_MHI_MAX_UL_CHANNELS 2
+#define IPA_MHI_MAX_DL_CHANNELS 4
 
 /* bit #40 in address should be asserted for MHI transfers over pcie */
 #define IPA_MHI_CLIENT_HOST_ADDR_COND(addr) \
@@ -127,7 +127,7 @@ struct ipa_mhi_channel_ctx {
 	u64 event_context_addr;
 	struct ipa_mhi_ev_ctx ev_ctx_host;
 	bool brstmode_enabled;
-	union __packed gsi_channel_scratch ch_scratch;
+	union gsi_channel_scratch ch_scratch;
 	unsigned long cached_gsi_evt_ring_hdl;
 };
 
