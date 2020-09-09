@@ -1523,7 +1523,7 @@ static int sec_get_gesture_info(void *chip_data, struct gesture_info *gesture)
 		break;
 
 	case GESTURE_M:
-		gesture->gesture_type = Mgestrue;
+		gesture->gesture_type = Mgesture;
 		gesture->Point_start.x =
 		    (coord[0] << 4) | ((coord[2] >> 4) & 0x0F);
 		gesture->Point_start.y =
@@ -1547,7 +1547,7 @@ static int sec_get_gesture_info(void *chip_data, struct gesture_info *gesture)
 		break;
 
 	case GESTURE_W:
-		gesture->gesture_type = Wgestrue;
+		gesture->gesture_type = Wgesture;
 		gesture->Point_start.x =
 		    (coord[0] << 4) | ((coord[2] >> 4) & 0x0F);
 		gesture->Point_start.y =
@@ -1579,7 +1579,7 @@ static int sec_get_gesture_info(void *chip_data, struct gesture_info *gesture)
 		break;
 
 	case GESTURE_S:
-		gesture->gesture_type = Sgestrue;
+		gesture->gesture_type = Sgesture;
 		gesture->Point_start.x =
 		    (coord[0] << 4) | ((coord[2] >> 4) & 0x0F);
 		gesture->Point_start.y =
@@ -1728,7 +1728,7 @@ static int sec_mode_switch(void *chip_data, work_mode mode, bool flag)
 	case MODE_GESTURE_SWITCH:
 		ret = sec_gesture_switch_mode(chip_info, flag);
 		if (ret < 0) {
-			TPD_INFO("%s: switch gestrue mode: %d failed\n",
+			TPD_INFO("%s: switch gesture mode: %d failed\n",
 				 __func__, flag);
 		}
 		break;
