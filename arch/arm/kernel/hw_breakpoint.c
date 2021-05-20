@@ -793,6 +793,18 @@ static void watchpoint_handler(unsigned long addr, unsigned int fsr,
 			if (dist != 0)
 				continue;
 
+			val = read_wb_reg(ARM_BASE_WVR + i);
+			ctrl_reg = read_wb_reg(ARM_BASE_WCR + i);
+			decode_ctrl_reg(ctrl_reg, &ctrl);
+			dist = get_distance_from_watchpoint(addr, val, &ctrl);
+			if (dist < min_dist) {
+				min_dist = dist;
+				closest_match = i;
+			}
+			/* Is this an exact match? */
+			if (dist != 0)
+				continue;
+
 			/* We have a winner. */
 			info = counter_arch_bp(wp);
 			info->trigger = addr;
