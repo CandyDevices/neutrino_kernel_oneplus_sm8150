@@ -2263,7 +2263,7 @@ static void msm_pdev_shutdown(struct platform_device *pdev)
 	if (!priv || !priv->kms)
 		return;
 
-	msm_lastclose(ddev);
+	msm_lastclose(pdev);
 
 	/* set this after lastclose to allow kickoff from lastclose */
 	priv->shutdown_in_progress = true;
