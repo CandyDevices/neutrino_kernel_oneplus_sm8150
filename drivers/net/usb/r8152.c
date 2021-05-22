@@ -12995,9 +12995,6 @@ static const struct usb_device_id rtl8152_table[] = {
 	/* TP-LINK */
 	{REALTEK_USB_DEVICE(VENDOR_ID_TPLINK, 0x0601)},
 
-	/* Linksys */
-	{REALTEK_USB_DEVICE(VENDOR_ID_LINKSYS, 0x0041)},
-
 	/* Nvidia */
 	{REALTEK_USB_DEVICE(VENDOR_ID_NVIDIA,  0x09ff)},
 	{}
